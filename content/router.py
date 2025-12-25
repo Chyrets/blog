@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
 from .models import CreatePost, Post
@@ -16,6 +16,15 @@ async def get_posts(session: SessionDep) -> list[Post]:
     posts = session.exec(select(Post)).all()
 
     return posts
+
+
+@router.get("{post_id}")
+async def get_post(session: SessionDep, post_id: int) -> Post:
+    post = session.get(Post, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    
+    return post
 
 
 @router.post("/")
