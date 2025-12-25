@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from sqlmodel import select
 
-from .models import CreatePost, Post
+from .models import CreatePost, Post, UpdatePost
 from ..database import SessionDep
 
 
@@ -35,3 +35,17 @@ async def create_post(session: SessionDep, post: CreatePost) -> Post:
     session.refresh(db_post)
 
     return db_post
+
+
+@router.patch("{post_id}")
+async def update_post(session: SessionDep, post_id: int, post: UpdatePost) -> Post:
+    post_db = session.get(Post, post_id)
+    if not post_db:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    post_data = post.model_dump(exclude_unset=True)
+    post_db.sqlmodel_update(post_data)
+    session.add(post_db)
+    session.commit()
+    session.refresh(post_db)
+
+    return post_db
