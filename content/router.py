@@ -49,3 +49,14 @@ async def update_post(session: SessionDep, post_id: int, post: UpdatePost) -> Po
     session.refresh(post_db)
 
     return post_db
+
+
+@router.delete("{post_id}")
+async def delete_post(session: SessionDep, post_id: int) -> dict:
+    post = session.get(Post, post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found.")
+    session.delete(post)
+    session.commit()
+
+    return {"message": f"Post with id={post_id} was successfully deleted."}
