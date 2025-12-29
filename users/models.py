@@ -7,8 +7,12 @@ class BaseUser(SQLModel):
 
 class User(BaseUser, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    hassed_password: str = Field()
+    hashed_password: str = Field()
     # is_admin: bool = Field(default=False)
+
+
+class GetUser(BaseUser):
+    id: int = Field()
 
 
 class CreateUser(BaseUser):
