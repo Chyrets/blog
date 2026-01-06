@@ -1,5 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select
+
+from app.users.models import User
+from app.users.services import get_current_user
 
 from .models import CreatePost, Post, UpdatePost
 from ..database import SessionDep
@@ -28,7 +32,7 @@ async def get_post(session: SessionDep, post_id: int) -> Post:
 
 
 @router.post("/")
-async def create_post(session: SessionDep, post: CreatePost) -> Post:
+async def create_post(session: SessionDep, post: CreatePost, current_user: Annotated[User, Depends(get_current_user)]) -> Post:
     db_post = Post.model_validate(post)
     session.add(db_post)
     session.commit()
@@ -38,7 +42,7 @@ async def create_post(session: SessionDep, post: CreatePost) -> Post:
 
 
 @router.patch("{post_id}")
-async def update_post(session: SessionDep, post_id: int, post: UpdatePost) -> Post:
+async def update_post(session: SessionDep, post_id: int, post: UpdatePost, current_user: Annotated[User, Depends(get_current_user)]) -> Post:
     post_db = session.get(Post, post_id)
     if not post_db:
         raise HTTPException(status_code=404, detail="Post not found.")
@@ -52,7 +56,7 @@ async def update_post(session: SessionDep, post_id: int, post: UpdatePost) -> Po
 
 
 @router.delete("{post_id}")
-async def delete_post(session: SessionDep, post_id: int) -> dict:
+async def delete_post(session: SessionDep, post_id: int, current_user: Annotated[User, Depends(get_current_user)]) -> dict:
     post = session.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
