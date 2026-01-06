@@ -33,7 +33,9 @@ async def get_post(session: SessionDep, post_id: int) -> Post:
 
 @router.post("/")
 async def create_post(session: SessionDep, post: CreatePost, current_user: Annotated[User, Depends(get_current_user)]) -> Post:
-    db_post = Post.model_validate(post)
+    post_dict = post.model_dump()
+    post_dict["author_id"] = current_user.id
+    db_post = Post.model_validate(Post(**post_dict))
     session.add(db_post)
     session.commit()
     session.refresh(db_post)
@@ -46,6 +48,9 @@ async def update_post(session: SessionDep, post_id: int, post: UpdatePost, curre
     post_db = session.get(Post, post_id)
     if not post_db:
         raise HTTPException(status_code=404, detail="Post not found.")
+    if post_db.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden.")
+    
     post_data = post.model_dump(exclude_unset=True)
     post_db.sqlmodel_update(post_data)
     session.add(post_db)
@@ -57,10 +62,13 @@ async def update_post(session: SessionDep, post_id: int, post: UpdatePost, curre
 
 @router.delete("{post_id}")
 async def delete_post(session: SessionDep, post_id: int, current_user: Annotated[User, Depends(get_current_user)]) -> dict:
-    post = session.get(Post, post_id)
-    if not post:
+    post_db = session.get(Post, post_id)
+    if not post_db:
         raise HTTPException(status_code=404, detail="Post not found.")
-    session.delete(post)
+    if post_db.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden.")
+    
+    session.delete(post_db)
     session.commit()
 
     return {"message": f"Post with id={post_id} was successfully deleted."}

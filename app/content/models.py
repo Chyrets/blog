@@ -10,6 +10,7 @@ class BasePost(SQLModel):
 
 class Post(BasePost, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    author_id: int | None = Field(foreign_key="user.id", nullable=False)
 
 
 class CreatePost(BasePost):
