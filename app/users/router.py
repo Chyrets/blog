@@ -1,12 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-import jwt
-from pwdlib import PasswordHash
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import select
 
-from .models import CreateUser, GetUser, TokenData, User, Token
+from .models import CreateUser, GetUser, User, Token
 from .services import authenticate_user, create_access_token, get_current_user
 from .config import ACCESS_TOKEN_EXPIRE_MINUTES, password_hash
 
@@ -38,7 +36,7 @@ async def login_for_access_token(session: SessionDep, form_data: Annotated[OAuth
 
 
 @router.get("/me")
-async def read_current_user(current_user: Annotated[User, Depends(get_current_user)]):
+async def read_current_user(current_user: Annotated[User, Depends(get_current_user)]) -> GetUser:
     return current_user
 
 
@@ -52,7 +50,7 @@ async def get_user_by_username(session: SessionDep, username: str) -> GetUser:
 
 
 @router.post("")
-async def create_user(session: SessionDep, user: CreateUser):
+async def create_user(session: SessionDep, user: CreateUser) -> GetUser:
     user_dict = user.model_dump()
     hashed_password = password_hash.hash(user_dict.get("password"))
     user_dict["hashed_password"] = hashed_password
