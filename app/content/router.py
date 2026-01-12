@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import select
 
 from app.users.models import User
@@ -16,8 +16,8 @@ router = APIRouter(
 
 
 @router.get("/")
-async def get_posts(session: SessionDep) -> list[PostWIthAuthor]:
-    posts = session.exec(select(Post)).all()
+async def get_posts(session: SessionDep, offset: int = 0, limit: int = Query(default=10, le=10)) -> list[PostWIthAuthor]:
+    posts = session.exec(select(Post).offset(offset).limit(limit)).all()
 
     return posts
 
