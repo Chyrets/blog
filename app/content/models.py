@@ -1,4 +1,6 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+from app.users.models import User, UserPublic
 
 
 class BasePost(SQLModel):
@@ -10,7 +12,9 @@ class BasePost(SQLModel):
 
 class Post(BasePost, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    author_id: int = Field(foreign_key="user.id", nullable=False)
+    
+    author_id: int = Field(foreign_key="user.id")
+    author: User = Relationship(back_populates="posts")
 
 
 class CreatePost(BasePost):
@@ -22,4 +26,9 @@ class UpdatePost(BasePost):
     content: str | None = None
     category: str | None = None
     # tags: list[str] | None = None
+
+
+class PostWIthAuthor(BasePost):
+    id: int
+    author: UserPublic
     

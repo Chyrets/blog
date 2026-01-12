@@ -5,7 +5,7 @@ from sqlmodel import select
 from app.users.models import User
 from app.users.services import get_current_user
 
-from .models import CreatePost, Post, UpdatePost
+from .models import CreatePost, Post, PostWIthAuthor, UpdatePost
 from ..database import SessionDep
 
 
@@ -16,14 +16,16 @@ router = APIRouter(
 
 
 @router.get("/")
-async def get_posts(session: SessionDep) -> list[Post]:
+async def get_posts(session: SessionDep) -> list[PostWIthAuthor]:
     posts = session.exec(select(Post)).all()
+    for post in posts:
+        print(post.__fields__)
 
     return posts
 
 
 @router.get("{post_id}")
-async def get_post(session: SessionDep, post_id: int) -> Post:
+async def get_post(session: SessionDep, post_id: int) -> PostWIthAuthor:
     post = session.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
@@ -35,6 +37,7 @@ async def get_post(session: SessionDep, post_id: int) -> Post:
 async def create_post(session: SessionDep, post: CreatePost, current_user: Annotated[User, Depends(get_current_user)]) -> Post:
     post_dict = post.model_dump()
     post_dict["author_id"] = current_user.id
+    post_dict["author"] = current_user
     db_post = Post.model_validate(Post(**post_dict))
     session.add(db_post)
     session.commit()
