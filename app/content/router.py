@@ -18,8 +18,6 @@ router = APIRouter(
 @router.get("/")
 async def get_posts(session: SessionDep) -> list[PostWIthAuthor]:
     posts = session.exec(select(Post)).all()
-    for post in posts:
-        print(post.__fields__)
 
     return posts
 
