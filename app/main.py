@@ -10,9 +10,9 @@ app.include_router(content_rounter)
 app.include_router(users_router)
 
 
-@app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
+# @app.on_event("startup")
+# def on_startup():
+#     create_db_and_tables()
 
 
 @app.get("/")
