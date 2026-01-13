@@ -25,8 +25,13 @@ class User(BaseUser, table=True):
     # is_admin: bool = Field(default=False)
     posts: list["Post"] = Relationship(back_populates="author")
 
+
 class GetUser(BaseUser):
     id: int = Field()
+
+
+class GetUserWithPosts(GetUser):
+    posts: list
 
 
 class CreateUser(BaseUser):

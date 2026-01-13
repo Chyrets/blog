@@ -15,20 +15,20 @@ router = APIRouter(
 )
 
 
-@router.get("/")
-async def get_posts(session: SessionDep, offset: int = 0, limit: int = Query(default=10, le=10)) -> list[PostWIthAuthor]:
-    posts = session.exec(select(Post).offset(offset).limit(limit)).all()
-
-    return posts
-
-
-@router.get("{post_id}")
+@router.get("/{post_id}")
 async def get_post(session: SessionDep, post_id: int) -> PostWIthAuthor:
     post = session.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
     
     return post
+
+
+@router.get("/")
+async def get_posts(session: SessionDep, offset: int = 0, limit: int = Query(default=10, le=10)) -> list[PostWIthAuthor]:
+    posts = session.exec(select(Post).offset(offset).limit(limit)).all()
+
+    return posts
 
 
 @router.post("/")
@@ -44,7 +44,7 @@ async def create_post(session: SessionDep, post: CreatePost, current_user: Annot
     return db_post
 
 
-@router.patch("{post_id}")
+@router.patch("/{post_id}")
 async def update_post(session: SessionDep, post_id: int, post: UpdatePost, current_user: Annotated[User, Depends(get_current_user)]) -> Post:
     post_db = session.get(Post, post_id)
     if not post_db:
@@ -61,7 +61,7 @@ async def update_post(session: SessionDep, post_id: int, post: UpdatePost, curre
     return post_db
 
 
-@router.delete("{post_id}")
+@router.delete("/{post_id}")
 async def delete_post(session: SessionDep, post_id: int, current_user: Annotated[User, Depends(get_current_user)]) -> dict:
     post_db = session.get(Post, post_id)
     if not post_db:

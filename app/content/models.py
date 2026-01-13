@@ -17,6 +17,10 @@ class Post(BasePost, table=True):
     author: User = Relationship(back_populates="posts")
 
 
+class PostPublic(BasePost):
+    id: int
+
+
 class CreatePost(BasePost):
     pass
 
