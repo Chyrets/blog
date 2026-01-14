@@ -1,10 +1,11 @@
+from datetime import datetime, timezone
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import select
 
 from app.users.models import User
 from app.users.services import get_current_user
-
 from .models import CreatePost, Post, PostWIthAuthor, UpdatePost
 from ..database import SessionDep
 
@@ -17,7 +18,7 @@ router = APIRouter(
 
 @router.get("/{post_id}")
 async def get_post(session: SessionDep, post_id: int) -> PostWIthAuthor:
-    post = session.get(Post, post_id)
+    post = session.exec(select(Post).where(Post.id == post_id, Post.deleted == False)).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
     
@@ -26,7 +27,7 @@ async def get_post(session: SessionDep, post_id: int) -> PostWIthAuthor:
 
 @router.get("/")
 async def get_posts(session: SessionDep, offset: int = 0, limit: int = Query(default=10, le=10)) -> list[PostWIthAuthor]:
-    posts = session.exec(select(Post).offset(offset).limit(limit)).all()
+    posts = session.exec(select(Post).where(Post.deleted == False).offset(offset).limit(limit)).all()
 
     return posts
 
@@ -69,7 +70,8 @@ async def delete_post(session: SessionDep, post_id: int, current_user: Annotated
     if post_db.author_id != current_user.id:
         raise HTTPException(status_code=403, detail="Forbidden.")
     
-    session.delete(post_db)
+    post_db.deleted = True
+    post_db.deleted_at = datetime.now(timezone.utc)
     session.commit()
 
     return {"message": f"Post with id={post_id} was successfully deleted."}
