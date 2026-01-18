@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import select
+from sqlmodel import select, or_
 
 from app.users.models import User
 from app.users.services import get_current_user
@@ -17,8 +17,14 @@ router = APIRouter(
 
 
 @router.get("/{post_id}")
-async def get_post(session: SessionDep, post_id: int) -> PostWIthAuthor:
-    post = session.exec(select(Post).where(Post.id == post_id, Post.deleted == False)).first()
+async def get_post(session: SessionDep, post_id: int, current_user: Annotated[User, Depends(get_current_user)]) -> PostWIthAuthor:
+    statement = (
+        select(Post)
+        .join(User)
+        .where(Post.id == post_id, Post.deleted == False)
+        .where(or_(User.is_private == False, User.id == current_user.id))
+    )
+    post = session.exec(statement).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
     
@@ -26,8 +32,21 @@ async def get_post(session: SessionDep, post_id: int) -> PostWIthAuthor:
 
 
 @router.get("/")
-async def get_posts(session: SessionDep, offset: int = 0, limit: int = Query(default=10, le=10)) -> list[PostWIthAuthor]:
-    posts = session.exec(select(Post).where(Post.deleted == False).offset(offset).limit(limit)).all()
+async def get_posts(
+    session: SessionDep,
+    current_user: Annotated[User, Depends(get_current_user)], 
+    offset: int = 0, 
+    limit: int = Query(default=10, le=10)
+) -> list[PostWIthAuthor]:
+    statement = (
+        select(Post)
+        .join(User)
+        .where(Post.deleted == False)
+        .where(or_(User.is_private == False, User.id == current_user.id))
+        .offset(offset)
+        .limit(limit)
+    )
+    posts = session.exec(statement).all()
 
     return posts
 
