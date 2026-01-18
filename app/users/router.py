@@ -71,3 +71,13 @@ async def create_user(session: SessionDep, user: CreateUser) -> GetUser:
     session.refresh(db_user)
     
     return db_user
+
+
+@router.post("/change_status")
+async def change_user_status(session: SessionDep, current_user: Annotated[User, Depends(get_current_user)]) -> dict:
+    current_user.is_private = not current_user.is_private
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+
+    return {"message": f"Current user has successfully changed their status to {"private" if current_user.is_private else "public"}"}

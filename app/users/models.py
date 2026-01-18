@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
+
 from pydantic import BaseModel
+from sqlalchemy.sql import false
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -24,10 +26,12 @@ class User(BaseUser, table=True):
     hashed_password: str = Field()
     # is_admin: bool = Field(default=False)
     posts: list["Post"] = Relationship(back_populates="author")
+    is_private: bool = Field(default=False, sa_column_kwargs={"server_default": false()})
 
 
 class GetUser(BaseUser):
     id: int = Field()
+    is_private: bool
 
 
 class GetUserWithPosts(GetUser):
