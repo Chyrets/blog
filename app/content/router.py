@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import select, or_
 
 from app.users.models import User
-from app.users.services import get_current_user
+from app.users.services import get_current_user, get_current_user_or_none
 from .models import CreatePost, Post, PostWIthAuthor, UpdatePost
 from ..database import SessionDep
 
@@ -17,14 +17,22 @@ router = APIRouter(
 
 
 @router.get("/{post_id}")
-async def get_post(session: SessionDep, post_id: int, current_user: Annotated[User, Depends(get_current_user)]) -> PostWIthAuthor:
-    statement = (
-        select(Post)
-        .join(User)
-        .where(Post.id == post_id, Post.deleted == False)
-        .where(or_(User.is_private == False, User.id == current_user.id))
-    )
-    post = session.exec(statement).first()
+async def get_post(session: SessionDep, post_id: int, current_user: Annotated[User, Depends(get_current_user_or_none)]) -> PostWIthAuthor:
+    if current_user:
+        stmt = (
+            select(Post)
+            .join(User)
+            .where(Post.id == post_id, Post.deleted == False)
+            .where(or_(User.is_private == False, User.id == current_user.id))
+        )
+    else:
+        stmt = (
+            select(Post)
+            .join(User)
+            .where(Post.id == post_id, Post.deleted == False)
+            .where(User.is_private == False)
+        )
+    post = session.exec(stmt).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found.")
     
@@ -34,19 +42,29 @@ async def get_post(session: SessionDep, post_id: int, current_user: Annotated[Us
 @router.get("/")
 async def get_posts(
     session: SessionDep,
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User | None, Depends(get_current_user_or_none)],
     offset: int = 0, 
     limit: int = Query(default=10, le=10)
 ) -> list[PostWIthAuthor]:
-    statement = (
-        select(Post)
-        .join(User)
-        .where(Post.deleted == False)
-        .where(or_(User.is_private == False, User.id == current_user.id))
-        .offset(offset)
-        .limit(limit)
-    )
-    posts = session.exec(statement).all()
+    if current_user:
+        stmt = (
+            select(Post)
+            .join(User)
+            .where(Post.deleted == False)
+            .where(or_(User.is_private == False, User.id == current_user.id))
+            .offset(offset)
+            .limit(limit)
+        )
+    else:
+        stmt = (
+            select(Post)
+            .join(User)
+            .where(Post.deleted == False)
+            .where(User.is_private == False)
+            .offset(offset)
+            .limit(limit)
+        )
+    posts = session.exec(stmt).all()
 
     return posts
 

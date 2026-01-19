@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta, timezone
+from re import L
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 import jwt
 from sqlmodel import select
 
 from .models import TokenData, User
-from .config import oauth2_scheme, password_hash, SECRET_KEY, ALGORITHM
+from .config import oauth2_scheme, optional_oauth2_scheme, password_hash, SECRET_KEY, ALGORITHM
 
 from ..database import SessionDep
 
@@ -62,5 +63,19 @@ async def get_current_user(session: SessionDep, token: Annotated[str, Depends(oa
     user = get_user(session, token_data.username)
     if user is None:
         raise credentials_exception
+    
+    return user
+
+
+async def get_current_user_or_none(session: SessionDep, token: Annotated[str, None, Depends(optional_oauth2_scheme)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            return
+        token_data = TokenData(username=username)
+    except jwt.InvalidTokenError:
+        return
+    user = get_user(session, token_data.username)
     
     return user

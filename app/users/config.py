@@ -9,3 +9,4 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 password_hash = PasswordHash.recommended()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token")
+optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/token", auto_error=False)
