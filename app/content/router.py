@@ -34,7 +34,7 @@ async def get_post(session: SessionDep, post_id: int, current_user: Annotated[Us
 @router.get("/")
 async def get_posts(
     session: SessionDep,
-    current_user: Annotated[User, Depends(get_current_user)], 
+    current_user: Annotated[User, Depends(get_current_user)],
     offset: int = 0, 
     limit: int = Query(default=10, le=10)
 ) -> list[PostWIthAuthor]:

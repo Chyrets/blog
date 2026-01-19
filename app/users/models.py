@@ -30,8 +30,12 @@ class User(BaseUser, table=True):
 
 
 class GetUser(BaseUser):
-    id: int = Field()
+    id: int
     is_private: bool
+
+
+class GetPrivateUser(GetUser):
+    pass
 
 
 class GetUserWithPosts(GetUser):

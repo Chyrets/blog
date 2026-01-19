@@ -7,7 +7,7 @@ from sqlalchemy.orm import contains_eager
 
 from app.content.models import Post
 
-from .models import CreateUser, GetUser, GetUserWithPosts, User, Token
+from .models import CreateUser, GetPrivateUser, GetUser, GetUserWithPosts, User, Token
 from .services import authenticate_user, create_access_token, get_current_user
 from .config import ACCESS_TOKEN_EXPIRE_MINUTES, password_hash
 
@@ -44,7 +44,7 @@ async def read_current_user(current_user: Annotated[User, Depends(get_current_us
 
 
 @router.get("/{username}")
-async def get_user_by_username(session: SessionDep, username: str) -> GetUserWithPosts:
+async def get_user_by_username(session: SessionDep, username: str) -> GetUserWithPosts | GetPrivateUser:
     statement = (
         select(User)
         .where(User.username==username)
@@ -55,6 +55,9 @@ async def get_user_by_username(session: SessionDep, username: str) -> GetUserWit
     user = session.exec(statement).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    
+    if user.is_private:
+        return GetPrivateUser(**(user.model_dump()))
         
     return user
 
