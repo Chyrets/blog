@@ -34,7 +34,7 @@ class Post(BasePost, table=True):
     author_id: int = Field(foreign_key="user.id")
     author: User = Relationship(back_populates="posts")
 
-    tags: list["Tag"] = Relationship(back_populates="tags", link_model=PostTagLink)
+    tags: list["Tag"] = Relationship(back_populates="posts", link_model=PostTagLink)
 
 
 class PostPublic(BasePost):
@@ -54,6 +54,7 @@ class UpdatePost(BasePost):
 class PostWIthAuthor(BasePost):
     id: int
     author: UserPublic
+    tags: list["Tag"] 
 
 
 class BaseTag(SQLModel):
@@ -63,5 +64,5 @@ class BaseTag(SQLModel):
 class Tag(BaseTag, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
-    posts: list[Post] = Relationship(back_populates="posts", link_model=PostTagLink)
+    posts: list[Post] = Relationship(back_populates="tags", link_model=PostTagLink)
     
