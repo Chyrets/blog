@@ -14,6 +14,10 @@ router = APIRouter(
     prefix="/posts",
     tags=["posts"],
 )
+tag_router = APIRouter(
+    prefix="/tags",
+    tags=["tags"],
+)
 
 
 @router.get("/{post_id}")
@@ -81,7 +85,7 @@ async def create_post(session: SessionDep, post: CreatePost, current_user: Annot
     post_data["tags"] = tags_db
 
     db_post = Post.model_validate(Post(**post_data))
-    
+
     session.add(db_post)
     session.commit()
     session.refresh(db_post)
@@ -126,8 +130,15 @@ async def delete_post(session: SessionDep, post_id: int, current_user: Annotated
     return {"message": f"Post with id={post_id} was successfully deleted."}
 
 
-@router.post("/tags")
-async def create_tag(session: SessionDep, tag: CreateTag, current_user: Annotated[User, Depends(get_current_user)]):
+@tag_router.get("/")
+async def get_tags(session: SessionDep, offset: int = 0, limit: int = Query(default=20, le=20)) -> list[Tag]:
+    tags = session.exec(select(Tag).offset(offset).limit(limit)).all()
+
+    return tags
+
+
+@tag_router.post("/")
+async def create_tag(session: SessionDep, tag: CreateTag, current_user: Annotated[User, Depends(get_current_user)]) -> Tag:
     db_tag = Tag.model_validate(tag)
     session.add(db_tag)
     session.commit()
