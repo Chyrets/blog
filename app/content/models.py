@@ -42,13 +42,14 @@ class PostPublic(BasePost):
 
 
 class CreatePost(BasePost):
-    pass
+    tags: list[str] | None = None
 
 
 class UpdatePost(BasePost):
     title: str | None = None
     content: str | None = None
     category: str | None = None
+    tags: list[str] | None = None
 
 
 class PostWIthAuthor(BasePost):
@@ -65,4 +66,8 @@ class Tag(BaseTag, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
     posts: list[Post] = Relationship(back_populates="tags", link_model=PostTagLink)
+
+
+class CreateTag(BaseTag):
+    pass
     

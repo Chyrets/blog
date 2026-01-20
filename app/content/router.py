@@ -6,7 +6,7 @@ from sqlmodel import select, or_
 
 from app.users.models import User
 from app.users.services import get_current_user, get_current_user_or_none
-from .models import CreatePost, Post, PostWIthAuthor, UpdatePost
+from .models import CreatePost, CreateTag, Post, PostWIthAuthor, Tag, UpdatePost
 from ..database import SessionDep
 
 
@@ -70,11 +70,18 @@ async def get_posts(
 
 
 @router.post("/")
-async def create_post(session: SessionDep, post: CreatePost, current_user: Annotated[User, Depends(get_current_user)]) -> Post:
-    post_dict = post.model_dump()
-    post_dict["author_id"] = current_user.id
-    post_dict["author"] = current_user
-    db_post = Post.model_validate(Post(**post_dict))
+async def create_post(session: SessionDep, post: CreatePost, current_user: Annotated[User, Depends(get_current_user)]) -> PostWIthAuthor:
+    post_data = post.model_dump()
+
+    post_data["author_id"] = current_user.id
+    post_data["author"] = current_user
+
+    tags = post_data.get("tags")
+    tags_db = session.exec(select(Tag).where(Tag.title.in_(tags))).all()
+    post_data["tags"] = tags_db
+
+    db_post = Post.model_validate(Post(**post_data))
+    
     session.add(db_post)
     session.commit()
     session.refresh(db_post)
@@ -83,7 +90,7 @@ async def create_post(session: SessionDep, post: CreatePost, current_user: Annot
 
 
 @router.patch("/{post_id}")
-async def update_post(session: SessionDep, post_id: int, post: UpdatePost, current_user: Annotated[User, Depends(get_current_user)]) -> Post:
+async def update_post(session: SessionDep, post_id: int, post: UpdatePost, current_user: Annotated[User, Depends(get_current_user)]) -> PostWIthAuthor:
     post_db = session.get(Post, post_id)
     if not post_db:
         raise HTTPException(status_code=404, detail="Post not found.")
@@ -91,6 +98,11 @@ async def update_post(session: SessionDep, post_id: int, post: UpdatePost, curre
         raise HTTPException(status_code=403, detail="Forbidden.")
     
     post_data = post.model_dump(exclude_unset=True)
+    
+    tags = post_data.get("tags")
+    tags_db = session.exec(select(Tag).where(Tag.title.in_(tags))).all()
+    post_db.tags.extend(tags_db)
+
     post_db.sqlmodel_update(post_data)
     session.add(post_db)
     session.commit()
@@ -112,3 +124,13 @@ async def delete_post(session: SessionDep, post_id: int, current_user: Annotated
     session.commit()
 
     return {"message": f"Post with id={post_id} was successfully deleted."}
+
+
+@router.post("/tags")
+async def create_tag(session: SessionDep, tag: CreateTag, current_user: Annotated[User, Depends(get_current_user)]):
+    db_tag = Tag.model_validate(tag)
+    session.add(db_tag)
+    session.commit()
+    session.refresh(db_tag)
+
+    return db_tag
