@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import select, or_
+from sqlmodel import select, or_, any_
 
 from app.users.models import User
 from app.users.services import get_current_user, get_current_user_or_none
@@ -47,27 +47,23 @@ async def get_post(session: SessionDep, post_id: int, current_user: Annotated[Us
 async def get_posts(
     session: SessionDep,
     current_user: Annotated[User | None, Depends(get_current_user_or_none)],
+    tag: str | None = None,
     offset: int = 0, 
     limit: int = Query(default=10, le=10)
 ) -> list[PostWIthAuthor]:
+    stmt = (
+        select(Post)
+        .join(User)
+        .where(Post.deleted == False)
+    )
     if current_user:
-        stmt = (
-            select(Post)
-            .join(User)
-            .where(Post.deleted == False)
-            .where(or_(User.is_private == False, User.id == current_user.id))
-            .offset(offset)
-            .limit(limit)
-        )
+        stmt = stmt.where(or_(User.is_private == False, User.id == current_user.id))
     else:
-        stmt = (
-            select(Post)
-            .join(User)
-            .where(Post.deleted == False)
-            .where(User.is_private == False)
-            .offset(offset)
-            .limit(limit)
-        )
+        stmt = stmt.where(User.is_private == False)
+    if tag:
+        stmt = stmt.join(Post.tags).where(Tag.title==tag)
+    stmt = stmt.offset(offset).limit(limit)
+    
     posts = session.exec(stmt).all()
 
     return posts
